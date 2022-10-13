@@ -11,17 +11,26 @@
 ```zsh
 # Upload an image to GitHub and get a RAW URL
 gup() {
-	# TODO allow for multiple paths
-	IMAGE_PATH="$(ruby --disable-gems -e 'puts File.expand_path(ARGV.first)' ${1:?Feed me one Path})"
-	cd "$HOME"/Developer/ImagePool || return 1
-	FILENAME="$(date +"%d_%b_%y_at_%H_%M_%S")_${IMAGE_PATH##*/}"
-	cp "$IMAGE_PATH" "$HOME"/Developer/ImagePool/storage/"$FILENAME"
-	git add "$(git ls-files -m -o --exclude-standard | tail -1)"
-	git commit --message "File $(date +"%d/%b/%y %H:%M:%S")" || return 1
-	git push --quiet || return 1
-	# Build the link
-	printf "https://raw.githubusercontent.com/LangLangBart/ImagePool/%s/storage/%s" "$(git rev-parse HEAD)" "$FILENAME" | pbcopy
-	echo "File uploaded, check clipboard!"
-	cd ~- || return 1
+	PATH_DIR="$HOME"/Developer/ImagePool
+	if [ ${#@} -lt 1 ]; then
+		echo -e "!!! Respect the syntax: $0 File.{png,jpg,jpeg,gif}"
+		return 1
+	else
+		for i in "$@"; do
+			if [[ ! ${i##*.} =~ ^(png|jpe?g|gif)$ ]]; then
+				echo -e "!!! Invalid extension: ${i##*/}"
+				continue
+			fi
+			IMAGE_PATH="$(ruby --disable-gems -e 'puts File.expand_path(ARGV.first)' "$i")"
+			FILENAME="$(tr -d '[:space:]' <<<"$(date +"%d_%b_%y_at_%H_%M_%S")"_"${IMAGE_PATH##*/}")"
+			cp "$IMAGE_PATH" "$PATH_DIR"/storage/"$FILENAME" || continue
+			git -C "$PATH_DIR" add storage/"$FILENAME"
+			git -C "$PATH_DIR" commit --quiet --message "${IMAGE_PATH##*/}"
+			git -C "$PATH_DIR" push --quiet || continue
+			printf "Uploaded: %s\n" "${i##*/}"
+			printf "https://raw.githubusercontent.com/%s/%s/%s/storage/%s\n" "$(git config user.name)" "${PATH_DIR##*/}" "$(git rev-parse HEAD)" "$FILENAME" | pbcopy
+			pbpaste
+		done
+	fi
 }
 ```

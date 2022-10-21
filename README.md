@@ -23,7 +23,7 @@ gup() {
 		fi
 		# https://github.com/junegunn/fzf-git.sh/issues/8#issuecomment-1229345117
 		IMAGE_PATH="$(ruby --disable-gems -e 'puts File.expand_path(ARGV.first)' "$i")"
-		FILENAME="$(tr -d '[:space:]' <<<"$(date +"%d_%b_%y_at_%H_%M_%S")"_"${IMAGE_PATH##*/}")"
+		FILENAME="$(tr -d '[:space:]' <<<"$(date +"%Y-%m-%d_%H-%M-%S")"_"${IMAGE_PATH##*/}")"
 		cp "$IMAGE_PATH" "$PATH_DIR"/storage/"$FILENAME" || continue
 		git -C "$PATH_DIR" add storage/"$FILENAME"
 		git -C "$PATH_DIR" commit --quiet --message "$FILENAME"

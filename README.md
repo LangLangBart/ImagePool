@@ -11,25 +11,32 @@
 ```zsh
 # Upload an image to GitHub and get a RAW URL
 gup() {
-	PATH_DIR="$HOME"/Developer/ImagePool
-	if [ ${#@} -lt 1 ]; then
-		echo -e "!!! Respect the syntax: $0 File.{png,jpg,jpeg,gif}"
+	local path_dir image_absolute_path filename
+	path_dir="$HOME"/Developer/ImagePool
+	if [ ! -d "$path_dir" ]; then
+		echo "!!! The '$path_dir' directory doesn't exist."
 		return 1
 	fi
-	for i in "$@"; do
-		if [[ ! ${i##*.} =~ ^(png|jpe?g|gif)$ ]]; then
-			echo -e "!!! Invalid extension: ${i##*/}"
+	if [ ${#@} -lt 1 ]; then
+		echo "!!! Respect the syntax: $0 File.{png,jpg,jpeg,gif}"
+		return 1
+	fi
+	for file in "$@"; do
+		if [[ ! ${file:e} =~ ^(png|jpe?g|gif)$ ]]; then
+			echo "!!! Invalid extension: ${file:t}"
 			continue
 		fi
-		# https://github.com/junegunn/fzf-git.sh/issues/8#issuecomment-1229345117
-		IMAGE_PATH="$(ruby --disable-gems -e 'puts File.expand_path(ARGV.first)' "$i")"
-		FILENAME="$(tr -d '[:space:]' <<<"$(date +"%Y-%m-%d_%H-%M-%S")"_"${IMAGE_PATH##*/}")"
-		cp "$IMAGE_PATH" "$PATH_DIR"/storage/"$FILENAME" || continue
-		git -C "$PATH_DIR" add storage/"$FILENAME"
-		git -C "$PATH_DIR" commit --quiet --message "$FILENAME"
-		git -C "$PATH_DIR" push --quiet || continue
-		printf "\nUploaded: %s\n" "$FILENAME"
-		printf "https://raw.githubusercontent.com/%s/%s/%s/storage/%s" "$(git config user.name)" "$(basename "$(git -C "$PATH_DIR" rev-parse --show-toplevel)")" "$(git -C "$PATH_DIR" rev-parse HEAD)" "$FILENAME" | pbcopy
+		# https://zsh.sourceforge.io/Doc/Release/Expansion.html#Modifiers
+		image_absolute_path="${file:A}"
+		filename="$(tr -d '[:space:]' <<<"$(date +"%Y-%m-%d_%H-%M-%S")"_"${image_absolute_path:t}")"
+		cp "$image_absolute_path" "$path_dir"/storage/"$filename" || continue
+		git -C "$path_dir" add storage/"$filename"
+		git -C "$path_dir" commit --quiet --message "$filename"
+		git -C "$path_dir" push --quiet || continue
+		printf "\nUploaded: %s\n" "$filename"
+		printf "https://raw.githubusercontent.com/%s/%s/%s/storage/%s" "$(git config user.name)" \
+			"$(basename "$(git -C "$path_dir" rev-parse --show-toplevel)")" \
+			"$(git -C "$path_dir" rev-parse HEAD)" "$filename" | pbcopy
 		# HINT: pbcopy/ pbpaste macOS only, use xclip on linux
 		pbpaste
 	done
